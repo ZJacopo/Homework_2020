@@ -12,11 +12,8 @@ const int MAX_CAP=15;
 const std::string EMPTY="cell_empty";
 Shop shop(MAX_CAP,EMPTY);
 
-//std::mutex mut_arr_queue;
-//std::condition_variable arr_queue;
 
 void enter_shop(){
-	//std::cout<<"1 dentro la thread enter"<<"\n";
 	
 	std::ifstream rd_arrivals("arrive_shop.txt");
 	std::queue<std::string> arrival_queue;
@@ -29,8 +26,7 @@ void enter_shop(){
 	
 	while(there_is_someone){
 		
-		bool enter_shop;	
-		//std::cout<<"1 divido il cliente tra negozio e coda \n";
+		bool enter_shop;
 		enter_shop = shop.sort_client(arrival_queue.size());
 		
 		if(getline(rd_arrivals,new_client)){
@@ -48,17 +44,14 @@ void enter_shop(){
 			}
 		}
 		else {other_entrance = false;}	
-		//I'm sure that some clients are gone out so if there is a queue i can open the shop to it
 		
-		//std::cout<<"1 chiedo stato di esistenza della coda \n";
 		
 		cl = shop.get_clients();
 		allow_queue = shop.get_exit_queue();
-		//std::unique_lock<std::mutex> mlock(mut_arr_queue);
+		
 		
 		if((arrival_queue.size()!= 0) && allow_queue && cl<MAX_CAP){
-			//arr_queue.wait(mlock);
-			//I'm sure that some clients are gone out so if there is a queue i can open the shop to it
+		
 			std::cout<<"1 la coda esiste \n";
 			
 			std::string hhmm_info;
@@ -76,21 +69,15 @@ void enter_shop(){
 			
 			shop.enter_client(new_client_queue);
 			shop.increment_client();
-			//std::cout<<"1 ho appena scritto sul file un cliente che era in coda"<<"\n";
 		}
 		
 		if(!other_entrance && (arrival_queue.size()== 0)){there_is_someone = false;}
-		//shop.print_shop();
-	//std::cout<<"1 fine while grosso"<<"\n";
-			
-		
 		
 	}
 	std::cout<<"1 FINITO \n";
 }
 
 void exit_shop(){
-	//std::cout<<"2 dentro la thread exit"<<"\n";
 	std::ifstream rd_exit("exit_shop.txt");
 	std::ofstream wr_exit("out_shop.txt");
 	std::queue<std::string> out_shop;
@@ -105,16 +92,10 @@ void exit_shop(){
 	while(other_exits){
 		
 		shop.is_someone_inside();
-		//std::cout<<"2 se sono qui, qualcuno è nel negozio \n";
 		
 		std::string find_it;
 		
 		find_it = shop.find_client(out_client);
-		//ho cercato nel negozio e se ho trovato il cliente, allora in questo momento l'ho già tolto dal negozio, diciamo che è 
-		//sulla soglia
-		
-		//qui devo capire se segnare il suo orario di uscita e renderlo disponibile alla coda
-		//o farlo uscire e basta
 		
 		if(find_it.compare(EMPTY)!=0){
 			std::cout<<"2 dentro c'è uno che deve uscire: "<<find_it<<" \n";
@@ -122,15 +103,12 @@ void exit_shop(){
 			get_arr = shop.get_arrival_queue();
 
 			if(get_arr){
-				//se esiste una coda allora devo caricare l'ora di uscita dentro la coda hhmm_queue
 				shop.update_hhmm_queue(find_it.substr(10));
 				shop.set_exit_queue(true);
-				//std::cout<<"2 c'è coda quindi salvo l'ora del cliente uscente\n";
 			}
 			
 			shop.decrement_client();
 			find_new_exit = true;
-			//std::cout<<"2 l'ho fatto uscire \n";
 			
 			int h_out = std::stoi(out_client.substr(10,12)); 
 			int h_it = std::stoi(find_it.substr(10,12)); 
@@ -145,12 +123,10 @@ void exit_shop(){
 			
 		}
 		
-		//shop.print_shop();
-		//std::cout<<"2 fine ciclo while \n";
 		if(find_new_exit){
 			
-			if(getline(rd_exit,out_client)){find_new_exit = false; /*std::cout<<"2 dentro find \n";*/}
-			else {other_exits=false; /*std::cout<<"2 FINITO TXT \n";*/}
+			if(getline(rd_exit,out_client)){find_new_exit = false;}
+			else {other_exits=false; }
 			
 		}
 	}
