@@ -28,9 +28,12 @@ class Shop{
 		void set_exit_queue(bool state);
 		void is_someone_inside();
 		void decrement_client();
-		void update_hhmm_queue(std::string hhmm);		
+		void update_hhmm_queue(std::string hhmm);
+
+		bool get_is_open();
+		void set_is_open(bool state);
 		
-		//void set_window(int cl);
+		void set_value_window();
 		void print_shop();
 		
 	private:
@@ -41,17 +44,21 @@ class Shop{
 		int clients;
 		bool existing_queue;
 		bool exit_hhmm_queue;
-		//int deg_window;
+		std::string deg_window;
+		bool shop_is_open;
 		
 		std::mutex mut_shop;
 		std::mutex mut_hhmm_queue;
 		std::mutex mut_clients;
 		std::mutex mut_existing;
 		std::mutex mut_exit_hhmm;
+		std::mutex mut_window;
+		std::mutex mut_shop_is_open;
 		
 		
 		
 		std::condition_variable not_empty;
+		std::condition_variable window;
 };
 
 

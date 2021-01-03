@@ -12,6 +12,26 @@
 
 Shop shop(15);
 
+void set_window(){
+	
+	bool window_online{true};
+	bool this_shop_is_open{false};
+	
+	while(window_online){
+		this_shop_is_open = shop.get_is_open();
+		
+		if(this_shop_is_open){
+			
+			shop.set_value_window();
+		}
+		else{window_online = false;}
+	}
+	
+	
+	
+	//shop.set_wndw();
+}
+
 void enter_shop(){
 	
 	std::ifstream rd_arrivals("arrive_shop.txt");
@@ -33,15 +53,11 @@ void enter_shop(){
 			
 			if(enter_shop){
 				shop.enter_client(new_client);
-				//shop.increment_client();
-				std::cout<<"1 cliente va in negozio "<<new_client<<"\n";
 			}
 			else{
 				arrival_queue.push(new_client); 
 				shop.set_arrival_queue(true);
-				 
-				std::cout<<"1 cliente va in coda "<<arrival_queue.size()<<" "<<new_client<<"\n";
-			}
+				}
 		}
 		else {other_entrance = false;}	
 		
@@ -50,8 +66,6 @@ void enter_shop(){
 		
 		if((arrival_queue.size()!= 0) && allow_queue && cl<MAX_CAP){
 		
-			std::cout<<"1 la coda esiste \n";
-			
 			std::string hhmm_info;
 			std::string new_id_queue;
 			std::string new_client_queue;
@@ -66,14 +80,11 @@ void enter_shop(){
 			new_client_queue = new_id_queue+" "+hhmm_info;
 			
 			shop.enter_client(new_client_queue);
-			//shop.increment_client();
 		}
 		
 		if(!other_entrance && (arrival_queue.size()== 0)){there_is_someone = false;}
 	
-	
 	}
-	std::cout<<"1 FINITO \n";
 }
 
 void exit_shop(){
@@ -90,9 +101,6 @@ void exit_shop(){
 	
 	while(someone_inside){
 		
-		
-		std::cout<<"2 usito da is_someone_inside quindi c'è qualcuno\n";
-		
 		if(need_new_client){
 			if(getline(rd_exit,out_client)){need_new_client = false;}
 			else{someone_inside=false;}
@@ -103,8 +111,6 @@ void exit_shop(){
 			std::string find_it = shop.find_client(out_client);//if i find it, i cancel it from the shop and save in find_it
 			
 			if(find_it.compare(EMPT)!=0){
-				std::cout<<"2 dentro c'è uno che deve uscire: "<<find_it<<" \n";
-				
 				get_arr = shop.get_arrival_queue();//ask for information about the existence of arrival queue
 
 				if(get_arr){
@@ -114,9 +120,6 @@ void exit_shop(){
 				
 				shop.decrement_client();
 				need_new_client = true;
-				
-				//std::string hhmm_permanence = calculate_permanence(find_it, out_client);
-
 				
 				int h_out = std::stoi(out_client.substr(10,12)); 
 				int h_it = std::stoi(find_it.substr(10,12)); 
@@ -134,7 +137,7 @@ void exit_shop(){
 		}
 		
 	}
-	std::cout<<"2 FINITO  \n";
+	shop.set_is_open(false);
 }
 
 int main(){
@@ -142,9 +145,11 @@ int main(){
 	
 	std::thread enter(enter_shop);
 	std::thread exit(exit_shop);
+	std::thread window(set_window);
 	
 	enter.join();
 	exit.join();
+	window.join();
 
 return 0;
 }
