@@ -1,13 +1,13 @@
 #include "Shop.h"
 
 
-const std::string EMPTY="cell_empty";
+std::string EMPTY="this_cell_is_empty";
 
-Shop::Shop(int lenght, std::string word)
-	:clients{0}, existing_queue{false}, exit_hhmm_queue{false}, MAX_CAP{lenght}
+Shop::Shop(int lenght)
+	:clients{0}, existing_queue{false}, exit_hhmm_queue{false}, MAX_CAP{lenght}//, deg_window{0}
 	{
 		for(int i=0; i<MAX_CAP; ++i){
-			in_shop.push_back(EMPTY);
+			in_shop.push_back("this_cell_is_empty");
 		}
 		
 	}
@@ -35,6 +35,7 @@ void Shop::enter_client(std::string code){
 			in_shop[i]=code;
 			std::cout<<"fct enter_client CLIENTE ENTRATO: "<<i<<"\n";
 			i = MAX_CAP;
+			increment_client();
 			mlock.unlock();
 		}
 	}
@@ -55,13 +56,14 @@ std::string Shop::find_client(std::string code){
 	
 	std::string id_code = code.substr(0,9);
 	std::string ret_str = EMPTY;
-	
+	std::cout<<"cerco cliente \n";
 	std::unique_lock<std::mutex> mlock(mut_shop);
 	for(int i=0;i<MAX_CAP;++i){
 		
 		if((in_shop[i].substr(0,9)).compare(id_code)==0){
 			ret_str = in_shop[i];
 			in_shop[i] = EMPTY;
+			std::cout<<"trovato cliente, salvato e tolto dal vettore \n";
 			i = MAX_CAP;
 			mlock.unlock();
 		}
@@ -69,7 +71,7 @@ std::string Shop::find_client(std::string code){
 	
 	return ret_str;
 	
-}//this section is protected from unique_lock to here 
+}
 
 void Shop::set_exit_queue(bool state){
 	
@@ -115,15 +117,20 @@ bool Shop::get_arrival_queue(){
 std::string Shop::entrance_from_queue(){
 	
 	std::string hhmm_info;
+	bool is_hhmm_queue_empty;
 	
 	mut_hhmm_queue.lock();
 	
 		hhmm_info = hhmm_queue.front();
 		hhmm_queue.pop();
+		is_hhmm_queue_empty= hhmm_queue.empty();
 		
 	mut_hhmm_queue.unlock();
 	
 	not_empty.notify_one();// because if i'm here it means that there is someone in the shop
+	
+	if(is_hhmm_queue_empty){Shop::set_exit_queue(false);}
+	
 	return hhmm_info;
 }
 
@@ -131,7 +138,7 @@ void Shop::is_someone_inside(){
 	
 	std::unique_lock<std::mutex> mlock(mut_clients);
 	if(clients==0){
-		
+		std::cout<<"2 bloccato su is_someone_inside \n";
 		not_empty.wait(mlock);
 	}
 	
@@ -160,6 +167,8 @@ int Shop::get_clients(){
 
 	return ret_cl;
 }
+
+//void set_window(int cl);
 
 void Shop::print_shop(){
 	

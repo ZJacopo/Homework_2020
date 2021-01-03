@@ -13,7 +13,7 @@
 class Shop{
 	
 	public:
-		Shop(int lenght, std::string word);
+		Shop(int lenght);
 		
 		bool sort_client(int size_q);
 		void enter_client(std::string code);
@@ -30,7 +30,7 @@ class Shop{
 		void decrement_client();
 		void update_hhmm_queue(std::string hhmm);		
 		
-		const std::string EMPTY="cell_empty";
+		//void set_window(int cl);
 		void print_shop();
 		
 	private:
@@ -41,6 +41,7 @@ class Shop{
 		int clients;
 		bool existing_queue;
 		bool exit_hhmm_queue;
+		//int deg_window;
 		
 		std::mutex mut_shop;
 		std::mutex mut_hhmm_queue;

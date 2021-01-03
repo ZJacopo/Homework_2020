@@ -13,12 +13,13 @@ int f_m;
 std::string fm;
 int h{8};
 int min{0};
+const int max{100};
 
 
 //l'ipotesi è che non possano entrare clienti nello stesso minuto
 std::ofstream create_arrivals("arrive_shop.txt");
 if(create_arrivals.is_open()){
-	for(int i=0; i<30; ++i){ 
+	for(int i=0; i<max; ++i){ 
 		id_num = rand() %89999 + 10000;
 		f_m = rand() %2;
 		if(f_m==0){fm="F";}
@@ -28,7 +29,7 @@ if(create_arrivals.is_open()){
 		
 		if(h==19 && min<=29 && min>20){//le ore 19:29 sono un tributo alla canzone "Baffo Natale" di Eelst
 			create_arrivals <<id<<id_num<<" "<<fm<<" "<<19<<":"<<29<<"\n";
-			i = 30;
+			i = max;
 		}
 		else {
 			std::string hh;
