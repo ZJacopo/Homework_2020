@@ -195,7 +195,7 @@ void Shop::set_is_open(bool state){
 }
 
 
-void Shop::set_value_window(){
+std::string Shop::set_value_window(){
 	
 	std::unique_lock<std::mutex> mlock(mut_shop_is_open);
 	if(true){
@@ -209,8 +209,9 @@ void Shop::set_value_window(){
 		mut_window.lock();
 		deg_window = reg_100;
 		mut_window.unlock();
-
-		std::cout<<"window open: "<<reg_100<<" with "<<cl<<" clients\n";
+		
+		return reg_100;
+		
 	
 	}	
 }

@@ -8,7 +8,7 @@
 #include <vector>
 #include "Shop.h"
 
-
+std::mutex c_mutex;
 
 Shop shop(15);
 
@@ -22,7 +22,10 @@ void set_window(){
 		
 		if(this_shop_is_open){
 			
-			shop.set_value_window();
+			std::string reg_100 = shop.set_value_window();
+			c_mutex.lock();
+			std::cout<<"window open: "<<reg_100<<"\n";
+			c_mutex.unlock();
 		}
 		else{window_online = false;}
 	}
@@ -53,9 +56,15 @@ void enter_shop(){
 			
 			if(enter_shop){
 				shop.enter_client(new_client);
+				c_mutex.lock();
+				std::cout<<"client enters from outside: "<<new_client<<"\n";
+				c_mutex.unlock();
 			}
 			else{
 				arrival_queue.push(new_client); 
+				c_mutex.lock();
+				std::cout<<"client enters in queue: "<<new_client<<"\n";
+				c_mutex.unlock();
 				shop.set_arrival_queue(true);
 				}
 		}
@@ -78,6 +87,10 @@ void enter_shop(){
 			hhmm_info = shop.entrance_from_queue();
 			
 			new_client_queue = new_id_queue+" "+hhmm_info;
+			
+			c_mutex.lock();
+			std::cout<<"client enters from queue: "<<new_client_queue<<"\n";
+			c_mutex.unlock();
 			
 			shop.enter_client(new_client_queue);
 		}
@@ -114,7 +127,10 @@ void exit_shop(){
 				get_arr = shop.get_arrival_queue();//ask for information about the existence of arrival queue
 
 				if(get_arr){
-					shop.update_hhmm_queue(find_it.substr(10));
+					shop.update_hhmm_queue(out_client.substr(10));
+					c_mutex.lock();
+					std::cout<<"value of hh:mm exit saved in hhmm_queue: "<<out_client.substr(10)<<"\n";
+					c_mutex.unlock();
 					shop.set_exit_queue(true);
 				}
 				
@@ -130,7 +146,10 @@ void exit_shop(){
 				h_out = m_tot/60; 
 				m_out = m_tot%60;
 				std::string hhmm_permanence = "h: "+std::to_string(h_out)+" m: "+std::to_string(m_out);
-	
+				
+				c_mutex.lock();
+				std::cout<<"client exits: "<<find_it.substr(0,9)<<" inside for "<<hhmm_permanence<<"\n";
+				c_mutex.unlock();
 
 				wr_exit <<"client: "<<find_it.substr(0,9)<<" inside for "<<hhmm_permanence<<"\n";
 			}

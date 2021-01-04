@@ -33,7 +33,7 @@ class Shop{
 		bool get_is_open();
 		void set_is_open(bool state);
 		
-		void set_value_window();
+		std::string set_value_window();
 		void print_shop();
 		
 	private:
