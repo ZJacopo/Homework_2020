@@ -14,6 +14,7 @@ std::string fm;
 int h{8};
 int min{0};
 const int max{100};
+//int bonus_f{15};
 
 
 //l'ipotesi è che non possano entrare clienti nello stesso minuto
@@ -50,6 +51,7 @@ std::ofstream temp("temp.txt");
 
 std::string line;
 std::string new_line;
+std::string ffmm;
 int hh;
 int mm;
 int count{0};
@@ -59,10 +61,14 @@ int count{0};
 while(getline(read_arrive, line)){
 	count++;
 	new_line = line.substr(0,10);
+	ffmm = line.substr(8,1);
 	hh = std::stoi(line.substr(10,12));
 	mm = std::stoi(line.substr(13));
 	if(hh==19){mm=mm+5;}
-	else{mm = mm + rand() % 30 + 5;}
+	else{
+		if(ffmm.compare("F")==0){mm = mm + rand() % 50 + 20;}
+		else{mm = mm + rand() % 30 + 5;}
+		}
 	
 	if(mm >= 60){hh = hh + 1; mm = mm - 60;}
 	
@@ -74,14 +80,7 @@ while(getline(read_arrive, line)){
 		else {new_m=std::to_string(mm);}
 	
 	temp <<new_line<<new_h<<":"<<new_m<<"\n";
-	
-	/*
-	questa versione non mette lo zero, PERO' va messo perchè serve a rendere tutte le linee uguali
-	
-	if(mm > 60){hh = hh + 1; mm = mm - 60;}
-	
-	temp <<new_line<<hh<<":"<<mm<<"\n";
-	*/
+
 }
 
 read_arrive.close();

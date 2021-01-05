@@ -54,7 +54,6 @@ void new_connection(int sock){
 	close(sock);
 }
 
-
 void *get_in_addr(struct sockaddr *sa){
 	
 	if(sa->sa_family == AF_INET){
@@ -77,12 +76,9 @@ int accept_loop(const char* port){
 	return new_sock;
 }
 
-
-///////////////
-
 string find_real_entrance(string entering_client, string exit_hhmm){
-	
-	int new_id_hh = std::stoi(entering_client.substr(10,12));
+	 
+	int new_id_hh = std::stoi(entering_client.substr(10,2));
 	int new_id_mm = std::stoi(entering_client.substr(13));
 	int exit_id_hh = std::stoi(exit_hhmm.substr(0,2));//hh:mm
 	int exit_id_mm = std::stoi(exit_hhmm.substr(3));
@@ -122,12 +118,15 @@ void set_window(){
 void enter_shop(){
 	
 	std::ifstream rd_arrivals("arrive_shop.txt");
-	std::queue<string> arrival_queue;
+	std::queue<string> arrival_queue;				// here are queued all clients that arrives when shop is full
+	
 	string new_client;
+	
 	bool there_is_someone{true};
 	bool allow_queue{false};
 	bool other_entrance{true};
-	int cl{0};
+	
+	int cl{0};					
 	const int MAX_CAP=15;
 		
 	
@@ -187,16 +186,29 @@ void enter_shop(){
 	}
 }
 void exit_shop(){
-	std::ifstream rd_exit("exit_shop.txt");
-	std::ofstream wr_exit("out_shop.txt");
-	std::queue<string> out_shop;
+	
+	std::ifstream rd_exit("exit_shop.txt");		
+	std::ofstream wr_exit("out_shop.txt");		//here goes who exits and his permanence inside the shop
+	std::ofstream wr_stat("stat_shop.txt");		//here goes all statistics analysis
+	
+	std::queue<string> out_shop;				//if there is a queue in entrance, here are saved hh:mm of exits
+	
 	const string EMPT="this_cell_is_empty";
 	
 	string out_client;
 	
 	bool someone_inside{true};
 	bool need_new_client{true};
-	bool get_arr{false};
+	bool get_arr{false};		//here i want to know if there is a queue entering the shop
+	
+	//all these int are used for the statistic analysis
+	int hh_open{8};
+	int count_tot_F{0};
+	int count_tot_M{0};
+	int count_F{0};
+	int count_M{0};
+	int perm_med_F{0};
+	int perm_med_M{0};
 	
 	while(someone_inside){
 		
@@ -224,22 +236,59 @@ void exit_shop(){
 				shop.decrement_client();
 				need_new_client = true;
 				
-				int h_out = std::stoi(out_client.substr(10,12)); 
-				int h_it = std::stoi(find_it.substr(10,12)); 
+				int h_out = std::stoi(out_client.substr(10,2)); 
+				int h_it = std::stoi(find_it.substr(10,2)); 
 				int m_out = std::stoi(out_client.substr(13)); 
 				int m_it = std::stoi(find_it.substr(13)); 
 				
-				int m_tot = (h_out*60)+(m_out)-(h_it*60)-(m_it);
-				h_out = m_tot/60; 
-				m_out = m_tot%60;
-				string hhmm_permanence = "h: "+std::to_string(h_out)+" m: "+std::to_string(m_out);
+				int mm_tot = (h_out*60)+(m_out)-(h_it*60)-(m_it);
+				int h_tot = mm_tot/60; 
+				int m_tot = mm_tot%60;
+				string hhmm_permanence = "h: "+std::to_string(h_tot)+" m: "+std::to_string(m_tot);
 
 				c_mutex.lock();
 				std::cout<<"client exits: "<<find_it.substr(0,9)<<" inside for "<<hhmm_permanence<<"\n";
 				c_mutex.unlock();
 
 				wr_exit <<"client: "<<find_it.substr(0,9)<<" inside for "<<hhmm_permanence<<"\n";
+				//////////
+				
+				if((find_it.substr(8,1)).compare("F") == 0){
+					count_F++;
+					perm_med_F = perm_med_F + mm_tot;
+				}
+				else{
+					count_M++;
+					perm_med_M = perm_med_M + mm_tot;
+				}
+				
+				if(h_it > hh_open){
+					
+					wr_stat<<"from: "<<hh_open<<":00 -> "<<h_it<<":00 \n"; 
+					hh_open = h_out;
+					int med_F;
+					int med_M;
+					if(count_F!=0){med_F = perm_med_F/count_F;}
+					else {med_F = 0;}
+					if(count_M!=0){med_M = perm_med_M/count_M;}
+					else {med_M = 0;}
+					
+					wr_stat<<"count F: "<<count_F<<"      medium permanence: "<<med_F<<" [min]\n";
+					wr_stat<<"count M: "<<count_M<<"      medium permanence: "<<med_M<<" [min]\n\n";
+					
+					count_tot_F = count_tot_F + count_F;
+					count_tot_M = count_tot_M + count_M;
+					count_F = 0;
+					count_M = 0;
+					perm_med_F = 0;
+					perm_med_M = 0;
+					
+				}
 			}
+			
+		}
+		if(!someone_inside){
+			wr_stat<<"Total F: "<<count_tot_F<<"      Total_M: "<<count_tot_M<<"\n";
 		}
 		
 	}

@@ -53,21 +53,20 @@ void Shop::increment_client(){
 	
 	not_empty.notify_one();//if we are here clients was updated so now is possible to notify not_empty
 	if(cl==0 || cl==5 || cl==10 || cl==15){window.notify_one();}
-	if(cl_pre == 1){robot_notify_one();}
+	if(cl_pre == 1){robot.notify_one();}
 }
 
 std::string Shop::find_client(std::string code){
 	
 	std::string id_code = code.substr(0,9);
 	std::string ret_str = EMPTY;
-	//std::cout<<"cerco cliente \n";
+	
 	std::unique_lock<std::mutex> mlock(mut_shop);
 	for(int i=0;i<MAX_CAP;++i){
 		
 		if((in_shop[i].substr(0,9)).compare(id_code)==0){
 			ret_str = in_shop[i];
 			in_shop[i] = EMPTY;
-			//std::cout<<"trovato cliente, salvato e tolto dal vettore \n";
 			i = MAX_CAP;
 			mlock.unlock();
 		}
@@ -142,7 +141,6 @@ void Shop::is_someone_inside(){
 	
 	std::unique_lock<std::mutex> mlock(mut_clients);
 	if(clients==0){
-		//std::cout<<"2 bloccato su is_someone_inside \n";
 		not_empty.wait(mlock);
 	}
 	
