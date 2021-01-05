@@ -34,6 +34,7 @@ class Shop{
 		void set_is_open(bool state);
 		
 		std::string set_value_window();
+		void stop_robot();
 		void print_shop();
 		
 	private:
@@ -47,6 +48,7 @@ class Shop{
 		std::string deg_window;
 		bool shop_is_open;
 		
+		
 		std::mutex mut_shop;
 		std::mutex mut_hhmm_queue;
 		std::mutex mut_clients;
@@ -54,11 +56,13 @@ class Shop{
 		std::mutex mut_exit_hhmm;
 		std::mutex mut_window;
 		std::mutex mut_shop_is_open;
+		std::mutex mut_robot;
 		
 		
 		
 		std::condition_variable not_empty;
 		std::condition_variable window;
+		std::condition_variable robot;
 };
 
 

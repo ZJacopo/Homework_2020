@@ -1,10 +1,10 @@
 #include "Shop.h"
 
-
 std::string EMPTY="this_cell_is_empty";
 
 Shop::Shop(int lenght)
-	:clients{0}, existing_queue{false}, exit_hhmm_queue{false}, MAX_CAP{lenght}, deg_window{0}, shop_is_open{true}
+	:clients{0}, existing_queue{false}, exit_hhmm_queue{false}, 
+	MAX_CAP{lenght}, deg_window{0}, shop_is_open{true}
 	{
 		for(int i=0; i<MAX_CAP; ++i){
 			in_shop.push_back("this_cell_is_empty");
@@ -16,7 +16,7 @@ bool Shop::sort_client(int size_q){
 	
 		bool enter_shop{true};
 		std::unique_lock<std::mutex> mlock(mut_clients);
-		//std::cout<<"fct sort_client \n";
+		
 		if(clients==MAX_CAP || size_q!=0){
 			enter_shop = false; 
 			mlock.unlock();
@@ -33,7 +33,6 @@ void Shop::enter_client(std::string code){
 	for(int i=0; i<MAX_CAP;++i){
 		if(in_shop[i].compare(EMPTY)==0){
 			in_shop[i]=code;
-			//std::cout<<"fct enter_client CLIENTE ENTRATO: "<<i<<"\n";
 			i = MAX_CAP;
 			increment_client();
 			mlock.unlock();
@@ -45,14 +44,16 @@ void Shop::enter_client(std::string code){
 void Shop::increment_client(){
 	
 	int cl=0;
+	int cl_pre;
 	mut_clients.lock();
-	clients++;
-	cl=clients;
-	//std::cout<<"fct increment_client: "<<clients<<"\n";
+		cl_pre = clients;
+		clients++;
+		cl=clients;
 	mut_clients.unlock();
 	
 	not_empty.notify_one();//if we are here clients was updated so now is possible to notify not_empty
 	if(cl==0 || cl==5 || cl==10 || cl==15){window.notify_one();}
+	if(cl_pre == 1){robot_notify_one();}
 }
 
 std::string Shop::find_client(std::string code){
@@ -149,12 +150,15 @@ void Shop::is_someone_inside(){
 
 void Shop::decrement_client(){
 	int cl=0;
+	int cl_pre;
 	mut_clients.lock();
-	clients--;
-	cl = clients;
+		cl_pre = clients;
+		clients--;
+		cl = clients;
 	mut_clients.unlock();
 	
 	if(cl==0 || cl==5 || cl==10 || cl==15){window.notify_one();}
+	if(cl_pre == 2){robot.notify_one();}
 }
 
 void Shop::update_hhmm_queue(std::string hhmm){
@@ -214,6 +218,14 @@ std::string Shop::set_value_window(){
 		
 	
 	}	
+}
+
+void Shop::stop_robot(){
+	
+	std::unique_lock<std::mutex> mlock(mut_robot);
+	if(true){
+		robot.wait(mlock);
+	}
 }
 
 void Shop::print_shop(){

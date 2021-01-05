@@ -1,4 +1,5 @@
 #include <string>
+using std::string;
 #include <iostream>
 #include <fstream>
 #include <thread>
@@ -7,10 +8,96 @@
 #include <condition_variable>
 #include <vector>
 #include "Shop.h"
+#include "Rob_server.h"
 
 std::mutex c_mutex;
 
 Shop shop(15);
+Rob_server rob_server;
+
+void new_connection(int sock){
+	string robot_state{"OFF"};
+	std::cout<<"robot state: "<<robot_state<<"\n";
+	
+	//shop.stop_robot();
+	int actual_cl;
+	
+	bool continue_to_operate{true};
+	bool turn_off_robot{false};
+	
+	here:
+	{
+		shop.stop_robot();
+		actual_cl = shop.get_clients();
+		
+		if(actual_cl >= 2){
+			if(send(sock, "robot ON", 8, 0) == -1){std::cerr<<"send\n";}
+			robot_state="ON";
+			std::cout<<"robot state: "<<robot_state<<"\n";
+		}
+		else if(actual_cl <= 1){
+			if(send(sock, "robot OFF", 9, 0) == -1){std::cerr<<"send\n";}
+			robot_state="OFF";
+			std::cout<<"robot state: "<<robot_state<<"\n";
+		}
+		
+		bool turn_off_robot = shop.get_is_open();
+		if(turn_off_robot){
+			if(send(sock, "robot close", 11, 0) == -1){std::cerr<<"send\n";}
+			robot_state="OFF and close";
+			continue_to_operate=false;
+			std::cout<<"robot state: "<<robot_state<<"\n";
+		}
+	}	
+		
+	if(continue_to_operate){goto here;}
+	close(sock);
+}
+
+
+void *get_in_addr(struct sockaddr *sa){
+	
+	if(sa->sa_family == AF_INET){
+		return &(((struct sockaddr_in*)sa)->sin_addr);
+	}
+	return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+int accept_loop(const char* port){
+	
+	int sock = rob_server.make_accept_sock(port);
+	
+	int new_sock = accept(sock, 0, 0);
+
+	if(new_sock <0){
+		std::cerr<<"server: filed on accept \n";
+		exit(EXIT_FAILURE);
+	}
+	
+	return new_sock;
+}
+
+
+///////////////
+
+string find_real_entrance(string entering_client, string exit_hhmm){
+	
+	int new_id_hh = std::stoi(entering_client.substr(10,12));
+	int new_id_mm = std::stoi(entering_client.substr(13));
+	int exit_id_hh = std::stoi(exit_hhmm.substr(0,2));//hh:mm
+	int exit_id_mm = std::stoi(exit_hhmm.substr(3));
+	
+	string ret_hhmm = std::to_string(new_id_hh)+":"+std::to_string(new_id_mm);
+	
+	if((new_id_hh > exit_id_hh) || ((new_id_hh == exit_id_hh)&&(new_id_mm > exit_id_mm))){
+		ret_hhmm = std::to_string(new_id_hh)+":"+std::to_string(new_id_mm);
+		}
+		else {
+			ret_hhmm = std::to_string(exit_id_hh)+":"+std::to_string(exit_id_mm);
+			}
+
+	return ret_hhmm;
+}
 
 void set_window(){
 	
@@ -19,10 +106,10 @@ void set_window(){
 	
 	while(window_online){
 		this_shop_is_open = shop.get_is_open();
-		
+
 		if(this_shop_is_open){
-			
-			std::string reg_100 = shop.set_value_window();
+
+			string reg_100 = shop.set_value_window();
 			c_mutex.lock();
 			std::cout<<"window open: "<<reg_100<<"\n";
 			c_mutex.unlock();
@@ -31,15 +118,12 @@ void set_window(){
 	}
 	
 	
-	
-	//shop.set_wndw();
 }
-
 void enter_shop(){
 	
 	std::ifstream rd_arrivals("arrive_shop.txt");
-	std::queue<std::string> arrival_queue;
-	std::string new_client;
+	std::queue<string> arrival_queue;
+	string new_client;
 	bool there_is_someone{true};
 	bool allow_queue{false};
 	bool other_entrance{true};
@@ -53,7 +137,7 @@ void enter_shop(){
 			
 			bool enter_shop;
 			enter_shop = shop.sort_client(arrival_queue.size());
-			
+
 			if(enter_shop){
 				shop.enter_client(new_client);
 				c_mutex.lock();
@@ -66,47 +150,49 @@ void enter_shop(){
 				std::cout<<"client enters in queue: "<<new_client<<"\n";
 				c_mutex.unlock();
 				shop.set_arrival_queue(true);
+				
 				}
 		}
 		else {other_entrance = false;}	
 		
 		cl = shop.get_clients();
 		allow_queue = shop.get_exit_queue();
+
 		
 		if((arrival_queue.size()!= 0) && allow_queue && cl<MAX_CAP){
 		
-			std::string hhmm_info;
-			std::string new_id_queue;
-			std::string new_client_queue;
-			std::string allow_again;
-						
+			string hhmm_info;
+			string new_id_queue;
+			string new_client_queue;
+			
+			hhmm_info = shop.entrance_from_queue();
+			
+			string hhmm_real = find_real_entrance(arrival_queue.front(), hhmm_info);
+			
 			new_id_queue = (arrival_queue.front()).substr(0,9);
 			arrival_queue.pop();
 			if((arrival_queue.size()== 0)){shop.set_arrival_queue(false);}
 			
-			hhmm_info = shop.entrance_from_queue();
-			
-			new_client_queue = new_id_queue+" "+hhmm_info;
-			
+			new_client_queue = new_id_queue+" "+hhmm_real;
+
 			c_mutex.lock();
 			std::cout<<"client enters from queue: "<<new_client_queue<<"\n";
 			c_mutex.unlock();
-			
+
 			shop.enter_client(new_client_queue);
 		}
-		
+
 		if(!other_entrance && (arrival_queue.size()== 0)){there_is_someone = false;}
 	
 	}
 }
-
 void exit_shop(){
 	std::ifstream rd_exit("exit_shop.txt");
 	std::ofstream wr_exit("out_shop.txt");
-	std::queue<std::string> out_shop;
-	const std::string EMPT="this_cell_is_empty";
+	std::queue<string> out_shop;
+	const string EMPT="this_cell_is_empty";
 	
-	std::string out_client;
+	string out_client;
 	
 	bool someone_inside{true};
 	bool need_new_client{true};
@@ -121,19 +207,20 @@ void exit_shop(){
 		
 		if(someone_inside){
 			shop.is_someone_inside();
-			std::string find_it = shop.find_client(out_client);//if i find it, i cancel it from the shop and save in find_it
+			string find_it = shop.find_client(out_client);//if i find it, i cancel it from the shop and save in find_it
 			
 			if(find_it.compare(EMPT)!=0){
 				get_arr = shop.get_arrival_queue();//ask for information about the existence of arrival queue
 
 				if(get_arr){
+					
 					shop.update_hhmm_queue(out_client.substr(10));
 					c_mutex.lock();
 					std::cout<<"value of hh:mm exit saved in hhmm_queue: "<<out_client.substr(10)<<"\n";
 					c_mutex.unlock();
 					shop.set_exit_queue(true);
 				}
-				
+
 				shop.decrement_client();
 				need_new_client = true;
 				
@@ -145,8 +232,8 @@ void exit_shop(){
 				int m_tot = (h_out*60)+(m_out)-(h_it*60)-(m_it);
 				h_out = m_tot/60; 
 				m_out = m_tot%60;
-				std::string hhmm_permanence = "h: "+std::to_string(h_out)+" m: "+std::to_string(m_out);
-				
+				string hhmm_permanence = "h: "+std::to_string(h_out)+" m: "+std::to_string(m_out);
+
 				c_mutex.lock();
 				std::cout<<"client exits: "<<find_it.substr(0,9)<<" inside for "<<hhmm_permanence<<"\n";
 				c_mutex.unlock();
@@ -158,17 +245,23 @@ void exit_shop(){
 	}
 	shop.set_is_open(false);
 }
-
-int main(){
-	//shop.print_shop();
+int main(int argc, char* argv[]){
+	
+	if(argc != 2){
+		std::cerr<<"usage: ./server port \n";
+		exit(EXIT_FAILURE);
+	}
+	
+	int rob_ok = accept_loop(argv[1]);
+	std::thread robot_(new_connection, rob_ok);
 	
 	std::thread enter(enter_shop);
 	std::thread exit(exit_shop);
 	std::thread window(set_window);
 	
+	robot_.join();
 	enter.join();
 	exit.join();
 	window.join();
-
 return 0;
 }
